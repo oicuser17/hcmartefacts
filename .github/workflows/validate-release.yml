@@ -22,13 +22,17 @@ jobs:
  
       - name: Check release manifest
 
+        shell: bash
+
         run: |
+
+          set -e
 
           shopt -s nullglob
 
           files=(releases/*.yaml)
 
-          if [ ${#files[@]} -eq 0 ]; then
+          if (( ${#files[@]} == 0 )); then
 
             echo "No manifest found in releases/"
 
@@ -38,9 +42,11 @@ jobs:
 
           for f in "${files[@]}"; do
 
+            clean=$(sed -e 's/\r$//' -e '1s/^\xEF\xBB\xBF//' "$f")
+
             for key in rfc project version commit target_environment; do
 
-              grep -q "^${key}:" "$f" || { echo "Missing '$key' in $f"; exit 1; }
+              echo "$clean" | grep -q "^${key}:" || { echo "Missing '$key' in $f"; exit 1; }
 
             done
 
@@ -59,4 +65,3 @@ jobs:
     steps:
 
       - run: echo "DEV deploy would run here. Blocked until REST access is fixed."
- 
