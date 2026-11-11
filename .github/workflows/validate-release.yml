@@ -1,0 +1,36 @@
+name: Validate release manifest
+
+on:
+  pull_request:
+    branches: [dev, test, main]
+  push:
+    branches: [dev]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check release manifest
+        run: |
+          shopt -s nullglob
+          files=(releases/*.yaml)
+          if [ ${#files[@]} -eq 0]; then
+            echo "No manifest found in releases/"
+            exit 1
+          fi
+          for f in "${files[@]}"; do
+            for key in rfc project version commit target_environment; do
+              grep -q "^{key}:" "$f" || { echo "Missing '$key' in $f"; exit 1;}
+            done
+            echo "OK: $f"
+          done
+  
+  deploy-dev:
+    needs: validate
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "DEV deploy would run here. Blocked until REST access is fixed"
+  
