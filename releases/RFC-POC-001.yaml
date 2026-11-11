@@ -1,5 +1,5 @@
 rfc: RFC-POC-001
 project: ARLINGTON_POC
 version: v1
-commit: 4d1122a
+commit: ab54834
 target_environment: dev
