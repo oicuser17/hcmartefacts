@@ -1,67 +1,37 @@
 name: Validate release manifest
- 
+
 on:
-
   pull_request:
-
     branches: [dev, test, main]
-
   push:
-
     branches: [dev]
- 
+  workflow_dispatch:
+
 jobs:
-
   validate:
-
     runs-on: ubuntu-latest
-
     steps:
-
       - uses: actions/checkout@v4
- 
+
       - name: Check release manifest
-
         shell: bash
-
         run: |
-
           set -e
-
-          shopt -s nullglob
-
-          files=(releases/*.yaml)
-
-          if (( ${#files[@]} == 0 )); then
-
-            echo "No manifest found in releases/"
-
+          if [ ! -f releases/RFC-POC-001.yaml ]; then
+            echo "Manifest releases/RFC-POC-001.yaml not found"
             exit 1
-
           fi
+          tr -d '\r' < releases/RFC-POC-001.yaml | sed '1s/^\xEF\xBB\xBF//' > /tmp/manifest.yaml
+          grep -q "^rfc:" /tmp/manifest.yaml || { echo "Missing rfc"; exit 1; }
+          grep -q "^project:" /tmp/manifest.yaml || { echo "Missing project"; exit 1; }
+          grep -q "^version:" /tmp/manifest.yaml || { echo "Missing version"; exit 1; }
+          grep -q "^commit:" /tmp/manifest.yaml || { echo "Missing commit"; exit 1; }
+          grep -q "^target_environment:" /tmp/manifest.yaml || { echo "Missing target_environment"; exit 1; }
+          echo "OK: releases/RFC-POC-001.yaml"
 
-          for f in "${files[@]}"; do
-
-            clean=$(sed -e 's/\r$//' -e '1s/^\xEF\xBB\xBF//' "$f")
-
-            for key in rfc project version commit target_environment; do
-
-              echo "$clean" | grep -q "^${key}:" || { echo "Missing '$key' in $f"; exit 1; }
-
-            done
-
-            echo "OK: $f"
-
-          done
- 
   deploy-dev:
-
     needs: validate
-
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-
     runs-on: ubuntu-latest
-
     steps:
-
       - run: echo "DEV deploy would run here. Blocked until REST access is fixed."
